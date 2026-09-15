@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Kaal Chakra</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kaal Chakra">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+    :root {
+        --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', sans-serif;
+        --font-mono: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+
+        --bg-base: #030712;
+        --glass-fill: rgba(255, 255, 255, 0.055);
+        --glass-fill-strong: rgba(255, 255, 255, 0.09);
+        --glass-border: rgba(255, 255, 255, 0.14);
+        --glass-highlight: rgba(255, 255, 255, 0.5);
+
+        --ios-blue: #0a84ff;
+        --ios-blue-soft: rgba(10, 132, 255, 0.16);
+        --ios-green: #30d158;
+        --ios-green-soft: rgba(48, 209, 88, 0.16);
+        --ios-amber: #ff9f0a;
+        --ios-red: #ff453a;
+
+        --text-primary: #f5f5f7;
+        --text-secondary: rgba(235, 235, 245, 0.62);
+        --text-tertiary: rgba(235, 235, 245, 0.4);
+
+        --spring: cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+
+    body {
+        font-family: var(--font-sans);
+        background: var(--bg-base);
+        color: var(--text-primary);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Ambient mesh light, like light bouncing behind frosted glass */
+    .mesh-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+    .mesh-blob {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(90px);
+        opacity: 0.55;
+        transition: background 0.6s var(--spring);
+        will-change: transform;
+    }
+    .mesh-blob.one {
+        width: 46vmax; height: 46vmax;
+        top: -18vmax; left: -14vmax;
+        background: radial-gradient(circle at 30% 30%, rgba(10,132,255,0.55), transparent 70%);
+        animation: drift-a 22s ease-in-out infinite;
+    }
+    .mesh-blob.two {
+        width: 40vmax; height: 40vmax;
+        bottom: -16vmax; right: -12vmax;
+        background: radial-gradient(circle at 60% 60%, rgba(48,209,88,0.4), transparent 70%);
+        animation: drift-b 26s ease-in-out infinite;
+    }
+    @keyframes drift-a {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(4vmax, 3vmax) scale(1.08); }
+    }
+    @keyframes drift-b {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(-3vmax, -4vmax) scale(1.06); }
+    }
+
+    .timer-display {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+    }
+
+    /* Core Apple-style frosted material */
+    .glass {
+        background: var(--glass-fill);
+        backdrop-filter: blur(28px) saturate(160%);
+        -webkit-backdrop-filter: blur(28px) saturate(160%);
+        border: 1px solid var(--glass-border);
+        position: relative;
+    }
+    .glass::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(180deg, var(--glass-highlight), rgba(255,255,255,0) 40%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0.35;
+        pointer-events: none;
+    }
+
+    .glass-inset {
+        background: rgba(255, 255, 255, 0.045);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .spring { transition: all 0.35s var(--spring); }
+
+    @keyframes pulse-ring {
+        0% { box-shadow: 0 0 0 0 rgba(10, 132, 255, 0.55); }
+        70% { box-shadow: 0 0 0 22px rgba(10, 132, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(10, 132, 255, 0); }
+    }
+    .ring-animation { animation: pulse-ring 2s infinite; }
+
+    @keyframes flash-finish {
+        0%, 100% { background: rgba(255, 255, 255, 0.05); }
+        50% { background: rgba(10, 132, 255, 0.35); }
+    }
+    .flash-animation { animation: flash-finish 0.45s ease-in-out; }
+
+    @keyframes shake {
+        10%, 90% { transform: translateX(-1px); }
+        20%, 80% { transform: translateX(2px); }
+        30%, 50%, 70% { transform: translateX(-4px); }
+        40%, 60% { transform: translateX(4px); }
+    }
+    .shake-animation { animation: shake 0.5s var(--spring); }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] { -moz-appearance: textfield; }
+
+    ::selection { background: var(--ios-blue-soft); }
+
+    /* Reduced motion respect */
+    @media (prefers-reduced-motion: reduce) {
+        .mesh-blob, .ring-animation, .flash-animation, .shake-animation { animation: none !important; }
+        .spring { transition: none !important; }
+    }
+</style>
+</head>
+<body>
+    <div class="mesh-bg">
+        <div class="mesh-blob one"></div>
+        <div class="mesh-blob two"></div>
+    </div>
+
+    <main class="w-full max-w-md p-6 sm:p-8 relative z-10">
+        <div id="app-container" class="glass rounded-[32px] p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] spring">
+
+            <!-- Header -->
+            <header class="text-center mb-8">
+                <h1 class="text-[28px] font-semibold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-300 via-blue-300 to-emerald-300">
+                    Kaal Chakra
+                </h1>
+                <p class="text-[13px] mt-1.5" style="color: var(--text-secondary);">Set your intervals and let it repeat.</p>
+            </header>
+
+            <!-- Timer Display -->
+            <div class="relative flex justify-center items-center mb-8">
+                <svg class="absolute w-64 h-64 sm:w-72 sm:h-72 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+                    <circle id="progress-ring" cx="50" cy="50" r="45" fill="none" stroke="#0a84ff" stroke-width="4"
+                            stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="0"
+                            style="transition: stroke-dashoffset 0.1s linear, stroke 0.4s ease;" />
+                </svg>
+
+                <div class="z-10 text-center flex flex-col items-center justify-center w-48 h-48 rounded-full glass-inset backdrop-blur-xl spring" id="timer-circle-inner">
+                    <div id="time-display" class="timer-display text-5xl sm:text-6xl font-semibold" style="color: var(--text-primary);">
+                        00:00
+                    </div>
+                    <div id="ms-display" class="timer-display text-base mt-0.5" style="color: var(--text-tertiary);">
+                        .00
+                    </div>
+                    <div id="phase-display" class="text-[13px] font-medium mt-2.5 px-2.5 py-0.5 rounded-full" style="color: var(--ios-blue); background: var(--ios-blue-soft);">
+                        Work
+                    </div>
+                    <div id="cycle-count" class="text-[11px] font-medium mt-2 hidden" style="color: var(--text-tertiary);">
+                        Cycle <span id="cycle-number">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Totals -->
+            <div class="grid grid-cols-2 gap-3 mb-4 -mt-1" id="totals-display">
+                <div class="flex flex-col items-center glass-inset p-2.5 rounded-2xl">
+                    <span class="text-[11px] font-medium mb-1" style="color: var(--ios-blue);">Total Work</span>
+                    <div id="total-work-display" class="timer-display text-lg font-semibold" style="color: var(--text-primary);">00:00</div>
+                </div>
+                <div class="flex flex-col items-center glass-inset p-2.5 rounded-2xl">
+                    <span class="text-[11px] font-medium mb-1" style="color: var(--ios-green);">Total Rest</span>
+                    <div id="total-rest-display" class="timer-display text-lg font-semibold" style="color: var(--text-primary);">00:00</div>
+                </div>
+            </div>
+
+            <!-- Validation message -->
+            <div id="validation-msg" class="text-center text-[13px] mb-4 h-4 opacity-0 spring" style="color: var(--ios-amber);">
+                Set a work or rest duration to start
+            </div>
+
+            <!-- Inputs -->
+            <div class="grid grid-cols-2 gap-3 mb-6 -mt-2" id="setup-controls">
+                <div class="flex flex-col items-center glass-inset p-3 rounded-2xl spring">
+                    <span class="text-[12px] mb-2 font-medium" style="color: var(--ios-blue);">Work</span>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="work-min-input" min="0" max="99" value="0" inputmode="numeric"
+                            class="w-12 h-10 bg-white/5 border border-white/10 rounded-xl text-center text-lg font-medium focus:outline-none focus:border-sky-400/70 focus:bg-white/10 transition-colors" style="color: var(--text-primary);">
+                        <span class="text-lg font-semibold" style="color: var(--text-tertiary);">:</span>
+                        <input type="number" id="work-sec-input" min="0" max="59" value="30" inputmode="numeric"
+                            class="w-12 h-10 bg-white/5 border border-white/10 rounded-xl text-center text-lg font-medium focus:outline-none focus:border-sky-400/70 focus:bg-white/10 transition-colors" style="color: var(--text-primary);">
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-center glass-inset p-3 rounded-2xl spring">
+                    <span class="text-[12px] mb-2 font-medium" style="color: var(--ios-green);">Rest</span>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="rest-min-input" min="0" max="99" value="0" inputmode="numeric"
+                            class="w-12 h-10 bg-white/5 border border-white/10 rounded-xl text-center text-lg font-medium focus:outline-none focus:border-emerald-400/70 focus:bg-white/10 transition-colors" style="color: var(--text-primary);">
+                        <span class="text-lg font-semibold" style="color: var(--text-tertiary);">:</span>
+                        <input type="number" id="rest-sec-input" min="0" max="59" value="10" inputmode="numeric"
+                            class="w-12 h-10 bg-white/5 border border-white/10 rounded-xl text-center text-lg font-medium focus:outline-none focus:border-emerald-400/70 focus:bg-white/10 transition-colors" style="color: var(--text-primary);">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-center items-center gap-5">
+                <button id="btn-reset" title="Reset cycle" class="w-14 h-14 rounded-full glass-inset flex items-center justify-center spring hover:bg-white/10 active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed" style="color: var(--text-secondary);">
+                    <i class="fa-solid fa-rotate-left text-base"></i>
+                </button>
+
+                <button id="btn-play-pause" class="w-[72px] h-[72px] rounded-full flex items-center justify-center text-white spring active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed" style="background: var(--ios-blue); box-shadow: 0 8px 24px -6px rgba(10,132,255,0.55);">
+                    <i id="icon-play-pause" class="fa-solid fa-play text-2xl ml-1"></i>
+                </button>
+
+                <button id="btn-stop" title="Stop" class="w-14 h-14 rounded-full glass-inset flex items-center justify-center spring hover:bg-white/10 active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed" style="color: var(--text-secondary);">
+                    <i class="fa-solid fa-stop text-base"></i>
+                </button>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="mt-7 flex justify-center gap-1.5 glass-inset rounded-full p-1 mx-auto w-fit" id="preset-controls">
+                <button class="preset-btn px-3.5 py-1.5 text-[12px] font-medium rounded-full spring hover:bg-white/10" style="color: var(--text-secondary);" data-sec="10">10s</button>
+                <button class="preset-btn px-3.5 py-1.5 text-[12px] font-medium rounded-full spring hover:bg-white/10" style="color: var(--text-secondary);" data-sec="30">30s</button>
+                <button class="preset-btn px-3.5 py-1.5 text-[12px] font-medium rounded-full spring hover:bg-white/10" style="color: var(--text-secondary);" data-sec="60">1m</button>
+                <button class="preset-btn px-3.5 py-1.5 text-[12px] font-medium rounded-full spring hover:bg-white/10" style="color: var(--text-secondary);" data-sec="300">5m</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const displayTime = document.getElementById('time-display');
+            const displayMs = document.getElementById('ms-display');
+            const inputWorkMin = document.getElementById('work-min-input');
+            const inputWorkSec = document.getElementById('work-sec-input');
+            const inputRestMin = document.getElementById('rest-min-input');
+            const inputRestSec = document.getElementById('rest-sec-input');
+            const btnPlayPause = document.getElementById('btn-play-pause');
+            const iconPlayPause = document.getElementById('icon-play-pause');
+            const btnStop = document.getElementById('btn-stop');
+            const btnReset = document.getElementById('btn-reset');
+            const progressRing = document.getElementById('progress-ring');
+            const setupControls = document.getElementById('setup-controls');
+            const presetControls = document.getElementById('preset-controls');
+            const presetBtns = document.querySelectorAll('.preset-btn');
+            const timerCircleInner = document.getElementById('timer-circle-inner');
+            const cycleCountDisplay = document.getElementById('cycle-count');
+            const cycleNumberDisplay = document.getElementById('cycle-number');
+            const phaseDisplay = document.getElementById('phase-display');
+            const validationMsg = document.getElementById('validation-msg');
+            const totalWorkDisplay = document.getElementById('total-work-display');
+            const totalRestDisplay = document.getElementById('total-rest-display');
+
+            const COLORS = {
+                blue: '#0a84ff', blueSoft: 'rgba(10,132,255,0.16)',
+                green: '#30d158', greenSoft: 'rgba(48,209,88,0.16)',
+                amber: '#ff9f0a', amberSoft: 'rgba(255,159,10,0.16)',
+                red: '#ff453a', redSoft: 'rgba(255,69,58,0.16)'
+            };
+
+            // Audio Context
+            let audioContext;
+            let silentOscillator;
+            let timerWorker;
+            let wakeLock = null;
+
+            // State
+            let workDurationMs = 0;
+            let restDurationMs = 0;
+            let currentPhaseDurationMs = 0;
+            let remainingTimeMs = 0;
+            let isRunning = false;
+            let animationFrameId = null;
+            let expectedEndTime = 0;
+            let cyclesCompleted = 0;
+            let currentPhase = 'WORK'; // 'WORK' or 'REST'
+            let validationTimeoutId = null;
+            let totalWorkMs = 0;
+            let totalRestMs = 0;
+            let lastAccountedTime = 0;
+
+            const ringCircumference = 2 * Math.PI * 45;
+            progressRing.style.strokeDasharray = ringCircumference;
+
+            // Background worker so ticking survives tab throttling
+            const workerCode = `
+                let interval;
+                self.onmessage = function(e) {
+                    if (e.data === 'start') {
+                        clearInterval(interval);
+                        interval = setInterval(() => self.postMessage('tick'), 100);
+                    } else if (e.data === 'stop') {
+                        clearInterval(interval);
+                    }
+                };
+            `;
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            timerWorker = new Worker(URL.createObjectURL(blob));
+            timerWorker.onmessage = function() {
+                if (isRunning) logicUpdate();
+            };
+
+            // --- Wake Lock (fix: properly requested AND released) ---
+            async function requestWakeLock() {
+                if ('wakeLock' in navigator) {
+                    try { wakeLock = await navigator.wakeLock.request('screen'); }
+                    catch (err) { /* denied or unsupported, non-fatal */ }
+                }
+            }
+            function releaseWakeLock() {
+                if (wakeLock !== null) {
+                    wakeLock.release().catch(() => {});
+                    wakeLock = null;
+                }
+            }
+            // Re-acquire the wake lock if the OS dropped it (e.g. screen briefly locked)
+            // while the timer is still meant to be running.
+            document.addEventListener('visibilitychange', async () => {
+                if (isRunning && document.visibilityState === 'visible' && wakeLock === null) {
+                    await requestWakeLock();
+                }
+            });
+
+            function initAudio() {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (!silentOscillator) {
+                    silentOscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.value = 0.0001;
+                    silentOscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    silentOscillator.start();
+                }
+                if (audioContext.state === 'suspended') audioContext.resume();
+            }
+
+            function playRingSound(type = 'WORK') {
+                if (!audioContext) initAudio();
+                if (audioContext.state === 'suspended') audioContext.resume();
+
+                const playChime = (freq, startTime, duration, oscType = 'sine') => {
+                    const osc = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    osc.type = oscType;
+                    osc.frequency.setValueAtTime(freq, startTime);
+                    gainNode.gain.setValueAtTime(0, startTime);
+                    gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.05);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                    osc.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + duration);
+                };
+
+                const now = audioContext.currentTime;
+                if (type === 'WORK') {
+                    playChime(659.25, now, 0.6, 'sine');
+                    playChime(523.25, now + 0.2, 0.8, 'sine');
+                } else {
+                    playChime(523.25, now, 0.6, 'sine');
+                    playChime(1046.50, now, 0.4, 'triangle');
+                    playChime(659.25, now + 0.15, 0.8, 'sine');
+                    playChime(1318.51, now + 0.15, 0.6, 'triangle');
+                }
+            }
+
+            function formatTime(ms) {
+                if (ms < 0) ms = 0;
+                const displayTotalSeconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(displayTotalSeconds / 60);
+                const seconds = displayTotalSeconds % 60;
+                const milliseconds = Math.floor((ms % 1000) / 10);
+                return {
+                    text: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+                    msText: `.${milliseconds.toString().padStart(2, '0')}`
+                };
+            }
+
+            // Commits time elapsed since the last checkpoint to whichever phase
+            // (work/rest) was active during that interval, then advances the checkpoint.
+            function accumulateElapsedTime(now) {
+                const elapsed = now - lastAccountedTime;
+                if (elapsed > 0) {
+                    if (currentPhase === 'WORK') totalWorkMs += elapsed;
+                    else totalRestMs += elapsed;
+                }
+                lastAccountedTime = now;
+            }
+
+            function updateTotalsDisplay() {
+                let liveWork = totalWorkMs;
+                let liveRest = totalRestMs;
+                if (isRunning) {
+                    // Add time since the last committed checkpoint for smooth live updates
+                    const extra = Date.now() - lastAccountedTime;
+                    if (currentPhase === 'WORK') liveWork += extra;
+                    else liveRest += extra;
+                }
+                totalWorkDisplay.textContent = formatTime(Math.max(0, liveWork)).text;
+                totalRestDisplay.textContent = formatTime(Math.max(0, liveRest)).text;
+            }
+
+            function updateDisplay() {
+                const formatted = formatTime(remainingTimeMs);
+                displayTime.textContent = formatted.text;
+                displayMs.textContent = formatted.msText;
+                updateTotalsDisplay();
+
+                if (currentPhase === 'WORK') {
+                    phaseDisplay.textContent = 'Work';
+                    phaseDisplay.style.color = COLORS.blue;
+                    phaseDisplay.style.background = COLORS.blueSoft;
+                } else {
+                    phaseDisplay.textContent = 'Rest';
+                    phaseDisplay.style.color = COLORS.green;
+                    phaseDisplay.style.background = COLORS.greenSoft;
+                }
+
+                if (currentPhaseDurationMs > 0) {
+                    const progress = remainingTimeMs / currentPhaseDurationMs;
+                    const offset = ringCircumference - (progress * ringCircumference);
+                    progressRing.style.strokeDashoffset = offset;
+
+                    if (currentPhase === 'WORK') {
+                        if (progress < 0.1 && remainingTimeMs > 0) progressRing.setAttribute('stroke', COLORS.red);
+                        else if (progress < 0.25) progressRing.setAttribute('stroke', COLORS.amber);
+                        else progressRing.setAttribute('stroke', COLORS.blue);
+                    } else {
+                        if (progress < 0.1 && remainingTimeMs > 0) progressRing.setAttribute('stroke', COLORS.amber);
+                        else progressRing.setAttribute('stroke', COLORS.green);
+                    }
+                } else {
+                    progressRing.style.strokeDashoffset = 0;
+                    progressRing.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+                }
+            }
+
+            // Fix: clamp values defensively so pasted/negative/out-of-range input
+            // can never produce a negative or absurd duration.
+            function clampInput(input, min, max) {
+                let v = parseInt(input.value);
+                if (isNaN(v)) v = 0;
+                v = Math.min(Math.max(v, min), max);
+                input.value = v;
+                return v;
+            }
+
+            function getDurationsFromInputs() {
+                let wm = clampInput(inputWorkMin, 0, 99);
+                let ws = clampInput(inputWorkSec, 0, 59);
+                workDurationMs = (wm * 60 + ws) * 1000;
+
+                let rm = clampInput(inputRestMin, 0, 99);
+                let rs = clampInput(inputRestSec, 0, 59);
+                restDurationMs = (rm * 60 + rs) * 1000;
+            }
+
+            function showValidationMessage(text) {
+                validationMsg.textContent = text;
+                validationMsg.style.opacity = '1';
+                timerCircleInner.classList.remove('shake-animation');
+                void timerCircleInner.offsetWidth;
+                timerCircleInner.classList.add('shake-animation');
+                clearTimeout(validationTimeoutId);
+                validationTimeoutId = setTimeout(() => {
+                    validationMsg.style.opacity = '0';
+                }, 2200);
+            }
+
+            // Runs on Web Worker tick - accurate background time tracking
+            function logicUpdate() {
+                if (!isRunning) return;
+
+                const now = Date.now();
+                accumulateElapsedTime(now);
+                remainingTimeMs = expectedEndTime - now;
+
+                if (remainingTimeMs <= 0) {
+                    timerCircleInner.classList.remove('flash-animation');
+                    void timerCircleInner.offsetWidth;
+                    timerCircleInner.classList.add('flash-animation');
+
+                    const overrun = Math.abs(remainingTimeMs);
+                    const baseNow = overrun > 1000 ? now : expectedEndTime;
+
+                    if (currentPhase === 'WORK') {
+                        if (restDurationMs > 0) {
+                            playRingSound('WORK');
+                            currentPhase = 'REST';
+                            currentPhaseDurationMs = restDurationMs;
+                        } else {
+                            playRingSound('REST');
+                            cyclesCompleted++;
+                            cycleNumberDisplay.textContent = cyclesCompleted;
+                            cycleCountDisplay.classList.remove('hidden');
+                            currentPhaseDurationMs = workDurationMs;
+                        }
+                    } else {
+                        playRingSound('REST');
+                        currentPhase = 'WORK';
+                        cyclesCompleted++;
+                        cycleNumberDisplay.textContent = cyclesCompleted;
+                        cycleCountDisplay.classList.remove('hidden');
+                        // Fix: if work duration is 0 (rest-only mode), loop straight back into rest
+                        currentPhaseDurationMs = workDurationMs > 0 ? workDurationMs : restDurationMs;
+                        if (workDurationMs === 0) currentPhase = 'REST';
+                    }
+
+                    expectedEndTime = baseNow + currentPhaseDurationMs;
+                    remainingTimeMs = expectedEndTime - now;
+                    updateDisplay();
+                }
+            }
+
+            // Runs on rAF - smooth visual updates
+            function uiUpdate() {
+                if (!isRunning) return;
+                remainingTimeMs = Math.max(0, expectedEndTime - Date.now());
+                updateDisplay();
+                animationFrameId = requestAnimationFrame(uiUpdate);
+            }
+
+            function setPlayPauseVisual(running) {
+                if (running) {
+                    iconPlayPause.classList.remove('fa-play', 'ml-1');
+                    iconPlayPause.classList.add('fa-pause');
+                    btnPlayPause.style.background = COLORS.amber;
+                    btnPlayPause.style.boxShadow = '0 8px 24px -6px rgba(255,159,10,0.55)';
+                    btnPlayPause.classList.add('ring-animation');
+                } else {
+                    iconPlayPause.classList.remove('fa-pause');
+                    iconPlayPause.classList.add('fa-play', 'ml-1');
+                    btnPlayPause.classList.remove('ring-animation');
+                    const color = currentPhase === 'WORK' ? COLORS.blue : COLORS.green;
+                    const shadowColor = currentPhase === 'WORK' ? 'rgba(10,132,255,0.55)' : 'rgba(48,209,88,0.55)';
+                    btnPlayPause.style.background = color;
+                    btnPlayPause.style.boxShadow = `0 8px 24px -6px ${shadowColor}`;
+                }
+            }
+
+            function lockSetup(locked) {
+                setupControls.classList.toggle('opacity-40', locked);
+                setupControls.classList.toggle('pointer-events-none', locked);
+                presetControls.classList.toggle('opacity-40', locked);
+                presetControls.classList.toggle('pointer-events-none', locked);
+            }
+
+            function startTimer() {
+                getDurationsFromInputs();
+
+                if (currentPhaseDurationMs === 0) {
+                    // Fix: previously this silently failed with no feedback, and only
+                    // supported starting from a work phase. Now: start from whichever
+                    // phase has a duration, and tell the user if neither does.
+                    if (workDurationMs === 0 && restDurationMs === 0) {
+                        showValidationMessage('Set a work or rest duration to start');
+                        return;
+                    }
+                    if (workDurationMs > 0) {
+                        currentPhase = 'WORK';
+                        currentPhaseDurationMs = workDurationMs;
+                    } else {
+                        currentPhase = 'REST';
+                        currentPhaseDurationMs = restDurationMs;
+                    }
+                    remainingTimeMs = currentPhaseDurationMs;
+                }
+
+                initAudio();
+                requestWakeLock();
+
+                isRunning = true;
+                lastAccountedTime = Date.now();
+                expectedEndTime = lastAccountedTime + remainingTimeMs;
+
+                lockSetup(true);
+                setPlayPauseVisual(true);
+
+                cancelAnimationFrame(animationFrameId);
+                timerWorker.postMessage('start');
+                animationFrameId = requestAnimationFrame(uiUpdate);
+            }
+
+            // Fix: this used to be declared twice; the surviving copy never told the
+            // worker to stop and never released the wake lock, so both kept running
+            // in the background indefinitely, even through Stop/Reset.
+            function pauseTimer() {
+                if (isRunning) accumulateElapsedTime(Date.now());
+                isRunning = false;
+                timerWorker.postMessage('stop');
+                cancelAnimationFrame(animationFrameId);
+                releaseWakeLock();
+
+                setPlayPauseVisual(false);
+                updateDisplay();
+            }
+
+            function stopTimer() {
+                pauseTimer();
+
+                getDurationsFromInputs();
+                currentPhase = 'WORK';
+                currentPhaseDurationMs = workDurationMs;
+                remainingTimeMs = currentPhaseDurationMs;
+
+                lockSetup(false);
+                progressRing.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+                updateDisplay();
+            }
+
+            function resetTimer() {
+                // Fix: Reset used to silently overwrite the user's Work/Rest inputs
+                // back to hardcoded defaults (0:30 / 0:10). It now only resets the
+                // running cycle back to the start, keeping whatever durations the
+                // user configured.
+                stopTimer();
+                cyclesCompleted = 0;
+                totalWorkMs = 0;
+                totalRestMs = 0;
+                cycleCountDisplay.classList.add('hidden');
+                updateDisplay();
+            }
+
+            btnPlayPause.addEventListener('click', () => {
+                if (isRunning) pauseTimer();
+                else startTimer();
+            });
+
+            btnStop.addEventListener('click', stopTimer);
+            btnReset.addEventListener('click', resetTimer);
+
+            const handleInput = () => {
+                if (!isRunning) {
+                    getDurationsFromInputs();
+                    currentPhase = 'WORK';
+                    currentPhaseDurationMs = workDurationMs;
+                    remainingTimeMs = currentPhaseDurationMs;
+                    progressRing.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+                    updateDisplay();
+                }
+            };
+
+            [inputWorkMin, inputWorkSec, inputRestMin, inputRestSec].forEach(input => {
+                input.addEventListener('input', handleInput);
+                // Fix: also clamp/sanitize on blur, since keydown-blocking alone
+                // doesn't stop a pasted negative or out-of-range value.
+                input.addEventListener('blur', () => {
+                    const isMin = input.id.includes('min');
+                    clampInput(input, 0, isMin ? 99 : 59);
+                    handleInput();
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            presetBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (isRunning) return;
+                    const secs = parseInt(e.target.dataset.sec);
+                    inputWorkMin.value = Math.floor(secs / 60);
+                    inputWorkSec.value = secs % 60;
+                    handleInput();
+                });
+            });
+
+            // Fix: make sure the worker thread and wake lock don't outlive the page.
+            window.addEventListener('beforeunload', () => {
+                timerWorker.postMessage('stop');
+                releaseWakeLock();
+            });
+
+            // Initialize display on load
+            handleInput();
+        });
+
+        // Register service worker for installability + offline use.
+        // Requires being served over HTTPS (or localhost) — file:// won't work.
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {
+                    /* non-fatal: app still works without offline support */
+                });
+            });
+        }
+    </script>
+</body>
+</html>
